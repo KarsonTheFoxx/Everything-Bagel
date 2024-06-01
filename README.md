@@ -1,1 +1,1 @@
-"# Everything Bagel" 
+# Everything Bagel
