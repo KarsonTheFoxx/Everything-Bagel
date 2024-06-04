@@ -32,7 +32,7 @@ class DatabaseGuild:
         if self.users.get(str(user_id)): return False
         
         # Initliase the user
-        self.users[str(user_id)] = {'sticky_roles':[]}
+        self.users[str(user_id)] = {'sticky_roles':[],'level':1,'xp_to_next':xp_for_next_level(1)}
 
         # Update the database
         with sqlite(DATABASE_NAME) as cur:
@@ -96,15 +96,27 @@ class DatabaseGuild:
         """
         Add xp to a user's local level in the guild. Returns their new level if they levelled up, 0 otherwise.
         """
+        if xp > 1_000_000:
+            raise ValueError('XP value may not be above 1,000,000')
         # Find the user
-        user_xp = self.users[str(user_id)]['xp']
-        user_level = self.users[str(user_id)]['xp_to_next']
+        user_xp = self.users[str(user_id)]['xp_to_next']
+        user_level = self.users[str(user_id)]['level']
         self.users[str(user_id)]['xp_to_next'] -= xp
+
         # Check if the user has levelled up
-        if user_xp-xp <= 0:
+        new_xp = self.users[str(user_id)]['xp_to_next']
+        if new_xp <= 0:
             self.users[str(user_id)]['level'] += 1
-            self.users[str(user_id)]['xp_to_next'] = xp_for_next_level(user_level+1)
-        
+            # +new_xp so that any overflow (negative) will count into the new level
+            new_xp_requirement = xp_for_next_level(user_level+1)
+            self.users[str(user_id)]['xp_to_next'] = xp_for_next_level(user_level+1)+new_xp
+
+            # If the amount of xp that overflows is more than the xp of the new level that we can "spend"
+            # (we need to level up more than one level)
+            if new_xp_requirement <= abs(new_xp):
+                # Rerun the command recursively until it reaches a point where it has "spent" the overflow xp on new levels
+                self.give_user_xp(user_id, 0)
+
         # Update the database
         with sqlite(DATABASE_NAME) as cur:
             cur.execute('UPDATE guilds SET users=? WHERE guild_id=?', (json.dumps(self.users), self.guild_id))
@@ -120,7 +132,6 @@ def get_guild(guild_id: int)-> DatabaseGuild | None:
     with sqlite(DATABASE_NAME) as cur:
         cur.execute('SELECT * FROM guilds WHERE guild_id=?', (guild_id,))
         data = cur.fetchone()
-        print(list(data))
         return DatabaseGuild(*data) if data else None
 
 def init_guild(guild_id, allowed_channels='', custom_prefix='!'):

@@ -1,4 +1,6 @@
 import sqlite3
+import math
+
 class sqlite():
     def __init__(self, file='sqlite.db'):
         self.file=file
@@ -16,4 +18,4 @@ def xp_for_next_level(current_level):
     how much xp you need to get to level 2.
     """
     # the formula is 50 + (x*2)^1.3
-    return 50 + (current_level*2)**1.3
+    return math.ceil(50 + (current_level*2)**1.3)
