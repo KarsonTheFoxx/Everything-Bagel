@@ -1,0 +1,4 @@
+database/guilds.db
+database/users.db
+__pycache__/
+testing.py

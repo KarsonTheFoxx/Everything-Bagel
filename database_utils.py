@@ -9,3 +9,11 @@ class sqlite():
     def __exit__(self, type, value, traceback):
         self.conn.commit()
         self.conn.close()
+
+def xp_for_next_level(current_level):
+    """
+    Returns the xp required to get to the next level from a given level (`level`). If you are on level 1, this function returns
+    how much xp you need to get to level 2.
+    """
+    # the formula is 50 + (x*2)^1.3
+    return 50 + (current_level*2)**1.3
